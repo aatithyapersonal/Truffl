@@ -39,7 +39,7 @@ Voice OS has many modules, but the MVP should run as one API service, one worker
 | Object storage | S3-compatible storage | Call recordings, long transcripts, exports |
 | Auth | Truffl merchant org auth first, production RBAC later | Merchants use the Truffl dashboard even when they install through Shopify |
 | Local dev | Docker Compose | Reproducible Postgres and Redis |
-| Deployment | One always-on API, one always-on worker, one dashboard | Webhooks and workers need always-on runtime |
+| Deployment | AWS-first production baseline | Voice sessions, webhooks, and workers need always-on infrastructure |
 
 ### Why Not Microservices Yet
 
@@ -62,6 +62,17 @@ packages/
 This keeps the product understandable while the workflow is still changing.
 
 This does not mean ignoring service boundaries. The code should keep clear module contracts for store connectors, voice providers, WhatsApp providers, journey orchestration, and attribution so these can be extracted later when scale or team ownership requires it.
+
+Production baseline:
+
+- API, worker, and voice runtime should run as containers on AWS ECS Fargate or an equivalent always-on container runtime.
+- PostgreSQL should run on managed RDS.
+- Redis should run on managed ElastiCache.
+- Recordings, transcripts, and exports should live in S3.
+- Secrets should live in AWS Secrets Manager.
+- Logs, metrics, traces, and alerts should be production concerns from the first deploy.
+
+Vercel can be used later for marketing or frontend convenience, but it should not own the core runtime for voice calls, workers, webhook delivery, or provider callbacks.
 
 ## Repository Shape
 
@@ -158,7 +169,7 @@ Runtime:
 - Always on.
 - Separate from API so webhooks remain fast.
 
-Real calls are in scope for MVP. Simulation remains useful for setup and QA, but the architecture must support placing outbound calls to test numbers through a telephony provider before pilot launch.
+Real calls are in scope for MVP. Simulation remains useful for setup and QA, but the architecture must support placing outbound calls to controlled India test numbers through Plivo before pilot launch. Twilio is the broader/global provider path.
 
 ### 4. Database
 

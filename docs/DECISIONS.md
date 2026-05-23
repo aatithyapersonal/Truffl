@@ -131,7 +131,7 @@ Simulation is useful for setup and QA, but Voice OS must prove real recovery beh
 
 Rationale:
 
-Provider choices will vary by country, cost, compliance, and call quality. Adapter boundaries let us test Exotel, Twilio, Plivo, OpenAI Realtime, WhatsApp providers, and CRM sinks without rewriting the journey engine.
+Provider choices will vary by country, cost, compliance, and call quality. Adapter boundaries let us test Plivo, Twilio, OpenAI Realtime, WhatsApp providers, and CRM sinks without rewriting the journey engine.
 
 Follow-up:
 
@@ -154,3 +154,147 @@ This creates the "Cursor for voice bots and recovery journeys" feeling while sti
 Follow-up:
 
 Build draft journey configuration, config patches, validation issues, and simulation runs before real publish flows.
+
+## 2026-05-23: India First Calling Market With Plivo
+
+Decision:
+
+Use India as the first real calling market. Use Plivo for India telephony and Twilio as the broader/global telephony path.
+
+Context:
+
+The first pilot market should be explicit because calling rules, caller ID, cost, deliverability, provider support, and handoff behavior vary by country.
+
+Rationale:
+
+India-first testing keeps the first real voice loop focused. Plivo is the chosen India provider, while Twilio remains useful for broader/global coverage.
+
+Follow-up:
+
+Create the Plivo adapter first and test outbound calls to controlled numbers before live merchant traffic.
+
+## 2026-05-23: AWS-First Production Baseline
+
+Decision:
+
+Use an AWS-first production baseline for core runtime: containerized API, worker, and voice runtime; managed PostgreSQL; managed Redis; S3 object storage; Secrets Manager; production observability.
+
+Context:
+
+Voice is the foundation of the product, and serious production use requires always-on workers, webhook processing, provider callbacks, long-running call sessions, durable storage, and secure secret handling.
+
+Rationale:
+
+Vercel-style frontend/serverless deployments can be useful, but they should not own the core voice and workflow runtime. AWS gives a more durable production shape from day one without forcing microservices.
+
+Follow-up:
+
+Keep local development simple with Docker Compose while designing deployable services around AWS containers and managed data services.
+
+## 2026-05-23: Human Handoff Is V1 Architecture
+
+Decision:
+
+Support both telephony handoff and CRM/ops handoff in the first real-call architecture.
+
+Context:
+
+High-intent buyers may need a human sales/support person, and merchants need to know when a cart needs intervention.
+
+Rationale:
+
+Handoff makes the AI safer and more commercially useful. It also creates a measurable distinction between AI-resolved and human-assisted recovery.
+
+Follow-up:
+
+Add handoff destination configuration, handoff reason capture, CRM task/update support, and operations queue visibility.
+
+## 2026-05-23: Voice Data Retention Is Three Months
+
+Decision:
+
+Retain call recordings and transcripts for 3 months by default.
+
+Context:
+
+Recordings and transcripts are useful for QA, debugging, outcome extraction, merchant trust, and dispute review, but they are sensitive customer data.
+
+Rationale:
+
+A 3-month retention window balances operational usefulness with privacy risk.
+
+Follow-up:
+
+Implement retention jobs and storage lifecycle policy before storing production call recordings.
+
+## 2026-05-23: Co-Founder Has Full Access
+
+Decision:
+
+The co-founder should have full access across product, dashboard, comments/review, and code-level inspection if needed.
+
+Context:
+
+She will not be executing technical work day to day, but she should be able to inspect, comment, and understand any part of the system.
+
+Rationale:
+
+Full visibility prevents founder knowledge silos and supports product/business review.
+
+Follow-up:
+
+Represent this as an owner/admin role with audit logging, not a limited viewer role.
+
+## 2026-05-23: Build Frontend And Backend Through Vertical Slices
+
+Decision:
+
+Build the chat-driven dashboard and backend foundation hand in hand through thin vertical slices.
+
+Context:
+
+The setup screen is a defining product experience, but it should not become a disconnected mock. The backend is core, but building only backend first would delay product learning.
+
+Rationale:
+
+Vertical slices let the UI, data model, journey drafts, simulator, voice calls, and operations queue mature together.
+
+Follow-up:
+
+Start with dashboard shell plus real draft configuration APIs, then add simulator and Plivo test calls.
+
+## 2026-05-23: AI Disclosure Configurable, Off By Default For India Pilot
+
+Decision:
+
+Do not include an AI disclosure at the start of calls by default for the initial India pilot, but keep disclosure behavior configurable by brand, country, and legal requirement.
+
+Context:
+
+The product should optimize for natural recovery calls during the pilot, while preserving future compliance flexibility.
+
+Rationale:
+
+Disclosure requirements and brand preferences can vary by market. Making it configurable avoids hardcoding either a disclosure-first or no-disclosure stance.
+
+Follow-up:
+
+Represent disclosure behavior in journey/market configuration and keep it off for the first India test unless legal review changes that.
+
+## 2026-05-23: Support Both WhatsApp Ownership Modes
+
+Decision:
+
+Support both Truffl-managed and merchant-owned WhatsApp modes in the architecture.
+
+Context:
+
+Truffl-managed WhatsApp can speed up pilots. Merchant-owned WhatsApp gives better brand trust and long-term control.
+
+Rationale:
+
+Both modes will be needed for different customer segments, so the data model should support both even if only one provider path is activated first.
+
+Follow-up:
+
+Model provider account ownership, template status, phone number identity, and fallback behavior before live WhatsApp follow-up.

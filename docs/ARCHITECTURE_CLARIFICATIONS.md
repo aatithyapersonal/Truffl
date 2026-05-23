@@ -169,6 +169,8 @@ This protects merchants from accidentally launching bad journeys while preservin
 
 The MVP should actually place calls, not only simulate calls.
 
+Voice is the foundation of Truffl. Store connectors, dashboards, WhatsApp, CRM, and attribution all support the core voice recovery loop. The system should therefore treat call placement, live voice runtime, handoff, call state, transcript capture, outcome extraction, and post-call actioning as first-class architecture, not late integrations.
+
 However, the architecture should keep telephony, real-time voice intelligence, transcription, synthesis, and LLM reasoning separated behind adapters.
 
 ### Provider Categories
@@ -183,6 +185,15 @@ However, the architecture should keep telephony, real-time voice intelligence, t
 | LLM reasoning | Outcome extraction, journey setup interpretation, guardrail checks | OpenAI text models or equivalent |
 | WhatsApp | Cart links, post-call follow-up, missed-call follow-up | Meta Cloud API, Interakt, WATI, Zoko, Gupshup |
 | CRM/logging | Pilot outcome sink | Google Sheets first, then HubSpot/Zoho/LeadSquared |
+
+Provider direction:
+
+- India telephony first: Plivo.
+- Broader/global telephony: Twilio.
+- Provider adapters remain mandatory so country routing can change without changing journey logic.
+- Real calls are enabled for controlled test numbers before pilot traffic.
+- AI disclosure is configurable but off by default for the initial India pilot unless legal/compliance review requires otherwise.
+- Call recordings and transcripts are retained for 3 months by default, then deleted or anonymized according to the retention job.
 
 ### Voice Architecture
 
@@ -206,13 +217,78 @@ Call flow:
 2. VoiceCallService creates a call attempt.
 3. TelephonyAdapter places the outbound call.
 4. When answered, the call media is connected to VoiceSessionRuntime.
-5. VoiceSessionRuntime runs the AI conversation, tools, disclosures, and handoff rules.
+5. VoiceSessionRuntime runs the AI conversation, tools, configurable disclosures, and handoff rules.
 6. Provider callbacks update call status.
 7. Transcript and recording are stored.
 8. OutcomeExtractor writes structured outcome.
 9. WhatsApp/CRM/attribution jobs run.
 
-Important design rule: telephony provider choice must not control the journey engine. If Exotel is best for India and Twilio is best for another market, the same journey should work through provider adapters.
+Important design rule: telephony provider choice must not control the journey engine. If Plivo is best for India and Twilio is best for another market, the same journey should work through provider adapters.
+
+India v1 uses Plivo by default. Twilio remains the preferred global fallback/broader-market adapter.
+
+## Human Handoff
+
+Human handoff is part of v1 architecture.
+
+Two handoff modes are required:
+
+- Telephony handoff: transfer or bridge the live call to a merchant-side human number, support queue, or sales rep when the buyer is high-intent or asks for a person.
+- CRM/ops handoff: create a hot lead, update CRM/Sheets, notify the merchant, and show the item in the operations queue.
+
+The voice agent should be able to trigger handoff through a guarded tool call. The tool should check brand configuration, business hours, available destination numbers, handoff reason, and country/provider capability before transferring.
+
+Handoff outcomes should be tracked separately from AI-only outcomes so we can measure how much revenue came from AI closure versus human-assisted closure.
+
+## Production Readiness Stance
+
+Build for production from day one, but deliver through thin vertical slices.
+
+Production-ready does not mean creating premature microservices. It means every early decision should survive serious usage:
+
+- Environment separation: local, staging, production.
+- Managed production database with backups and migrations.
+- Durable queue and worker model.
+- Always-on API and worker services for webhooks, calls, and retries.
+- Secrets in a real secret manager, never local files or repo.
+- Object storage for recordings, transcripts, exports, and large payloads.
+- Structured logs, metrics, traces, and alerts.
+- Audit logs for sensitive actions.
+- Role-based access control from the start.
+- Data retention jobs, including 3-month voice recording/transcript retention.
+- Provider abstraction and idempotency for every external side effect.
+
+Recommended production baseline:
+
+- Cloud: AWS first, with infrastructure kept portable enough to move later if needed.
+- App runtime: ECS Fargate or equivalent container runtime for API, worker, and voice runtime.
+- Database: Amazon RDS PostgreSQL.
+- Queue/cache: Amazon ElastiCache for Redis.
+- Object storage: S3.
+- Secrets: AWS Secrets Manager.
+- Observability: CloudWatch plus OpenTelemetry-compatible app instrumentation.
+- Network/security: VPC, private database/cache subnets, TLS everywhere, least-privilege IAM, KMS encryption, WAF/ALB where appropriate.
+
+Vercel can still be considered for the marketing site or dashboard frontend if useful, but it should not be the core runtime for voice sessions, long-running workers, webhook orchestration, or provider callbacks.
+
+## Build Strategy
+
+Frontend and backend should be built hand in hand through vertical slices.
+
+Do not build the entire frontend first or the entire backend first.
+
+Recommended sequence:
+
+1. Build the dashboard shell and chat-driven journey setup mock with fake data.
+2. In parallel, build the real data model for merchant organizations, brands, markets, journey drafts, connectors, and provider accounts.
+3. Connect the setup UI to draft configuration APIs.
+4. Add a simulator that sends fake store events through the real backend path.
+5. Add Plivo test-call capability for controlled numbers.
+6. Add voice runtime and outcome extraction.
+7. Add Shopify development-store connector.
+8. Add operations queue, attribution, WhatsApp, and CRM handoff.
+
+This keeps the magical product surface visible early while making sure every visual element is gradually backed by real system behavior.
 
 ## WhatsApp Ownership Modes
 
@@ -234,7 +310,7 @@ Architecture requirement:
 - Build consent and suppression fields now even if enforcement is basic in pilot.
 - Store `phone_consent_status`, `sms_whatsapp_consent_status`, `marketing_email_consent_status`, `do_not_call`, `opted_out_at`, and source.
 - Support country-specific quiet hours and calling rules.
-- Support AI disclosure in voice calls.
+- Support configurable AI disclosure in voice calls when required; default off for the first India pilot.
 - Support opt-out capture from calls and WhatsApp.
 
 ## Data Model Additions
@@ -269,24 +345,26 @@ Add or extend these concepts in the build-level schema:
 2. Build Truffl dashboard shell with chat-driven journey setup mock.
 3. Build core data model for brands, markets, connectors, journey drafts, and published journey configs.
 4. Build normalized store connector contract.
-5. Build Shopify connector against a development store.
-6. Ingest Shopify checkout/order webhooks and abandoned checkout backfill.
+5. Connect chat-driven setup UI to real draft journey APIs.
+6. Build simulator that sends fake store events through the real backend path.
 7. Build product-agnostic High-AOV New Buyer eligibility with brand-configured thresholds.
-8. Build real outbound call attempt to test numbers through one telephony provider.
+8. Build real outbound call attempt to controlled test numbers through Plivo for India.
 9. Add voice runtime integration and outcome extraction.
-10. Add WhatsApp follow-up with one provider mode.
-11. Add attribution and operations dashboard.
-12. Add WooCommerce connector and custom store webhook/API connector.
+10. Build Shopify connector against a development store.
+11. Ingest Shopify checkout/order webhooks and abandoned checkout backfill.
+12. Add telephony and CRM/ops human handoff.
+13. Add WhatsApp follow-up with both ownership modes modeled, one provider active first.
+14. Add attribution and operations dashboard.
+15. Add WooCommerce connector and custom store webhook/API connector.
 
 ## Open Questions
 
-- Which country should the first real calling test use?
-- Which cloud should we prefer for first deployment: Vercel plus managed Postgres/Redis, AWS, GCP, or another provider?
-- Do we want Truffl-managed WhatsApp first for pilot speed, or merchant-owned WhatsApp first for brand trust?
-- Which telephony provider do we want to test first for the first market?
-- Do we need a human handoff path in the first live-call version?
-- What retention policy should apply to call recordings and transcripts?
-- Should co-founder access be admin-only dashboards, investor-style reports, or product configuration review?
+- Which exact Plivo account and Indian caller ID path should we use for test calls?
+- Which WhatsApp provider should be active first while keeping both ownership modes in the model?
+- Should the first deploy use AWS ECS Fargate directly, or start with a simpler AWS container service while preserving the same architecture?
+- What merchant notification channels should CRM/ops handoff use first: dashboard only, email, Slack, WhatsApp, or CRM task?
+- Which development Shopify store should we create for integration testing?
+- Which specific co-founder identity provider/login method should we use first?
 
 ## References Checked
 
@@ -300,6 +378,13 @@ Add or extend these concepts in the build-level schema:
 - OpenAI speech-to-text: https://platform.openai.com/docs/guides/speech-to-text
 - OpenAI text-to-speech: https://platform.openai.com/docs/guides/text-to-speech
 - WhatsApp Cloud API Node.js SDK: https://whatsapp.github.io/WhatsApp-Nodejs-SDK/
+- Plivo outbound calls: https://docs.plivo.com/docs/voice/api/call/make-a-call/
+- Plivo call transfer: https://docs.plivo.com/docs/voice/api/call/transfer-a-call
+- Plivo call recording: https://docs.plivo.com/docs/voice/use-cases/record-a-call
 - Twilio Programmable Voice: https://www.twilio.com/docs/voice
-- Exotel outbound call APIs: https://docs.exotel.com/voice-apis/outbound-call-apis
-- Exotel AgentStream: https://docs.exotel.com/exotel-agentstream/connect-voice-ai-api
+- Twilio Voice API: https://www.twilio.com/docs/voice/api
+- AWS ECS Fargate: https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS_Fargate.html
+- AWS RDS PostgreSQL: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_PostgreSQL.html
+- AWS ElastiCache for Redis: https://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/WhatIs.html
+- AWS Secrets Manager: https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html
+- S3 lifecycle configuration: https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lifecycle-mgmt.html
