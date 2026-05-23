@@ -10,6 +10,48 @@ Current product direction: Truffl is a merchant-facing web dashboard with store 
 
 - [VoiceOS_High_AOV_Architecture.md](./VoiceOS_High_AOV_Architecture.md): product and system architecture for the reusable Voice OS spine and first journey.
 - [VoiceOS_Build_Level_Architecture.md](./VoiceOS_Build_Level_Architecture.md): implementation-level architecture covering stack, services, database, queues, APIs, provider adapters, and build milestones.
+- [docs/ARCHITECTURE_CLARIFICATIONS.md](./docs/ARCHITECTURE_CLARIFICATIONS.md): current product decisions for Truffl dashboard, store connectors, production voice architecture, and build order.
+
+## Local Development
+
+Requirements today:
+
+- Node.js 22 or newer.
+- npm.
+
+Useful soon:
+
+- Docker Desktop, OrbStack, or Colima for local Postgres and Redis.
+
+Install dependencies:
+
+```sh
+npm_config_cache=/private/tmp/truffl-npm-cache npm install
+```
+
+Run the dashboard:
+
+```sh
+npm run dev
+```
+
+Run the API:
+
+```sh
+npm run dev:api
+```
+
+Run the worker in dry-run mode:
+
+```sh
+npm run dev:worker
+```
+
+Start local Postgres and Redis after Docker is installed:
+
+```sh
+docker compose up -d
+```
 
 ## MVP Focus
 

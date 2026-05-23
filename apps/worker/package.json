@@ -1,0 +1,22 @@
+{
+  "name": "@truffl/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@truffl/config": "0.1.0",
+    "@truffl/core": "0.1.0",
+    "bullmq": "^5.77.1",
+    "ioredis": "^5.8.2"
+  },
+  "devDependencies": {
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.0"
+  }
+}

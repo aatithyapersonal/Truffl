@@ -1,0 +1,529 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  OWNER
+  ADMIN
+  OPERATOR
+  VIEWER
+}
+
+enum ConnectorKind {
+  SHOPIFY
+  WOOCOMMERCE
+  CUSTOM_API
+  SCRIPT_PIXEL
+  CSV_IMPORT
+}
+
+enum ConnectorStatus {
+  DRAFT
+  CONNECTED
+  DEGRADED
+  DISCONNECTED
+}
+
+enum JourneyStatus {
+  DRAFT
+  READY_FOR_TEST
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum EventSource {
+  SHOPIFY
+  WOOCOMMERCE
+  CUSTOM_API
+  SCRIPT_PIXEL
+  CSV_IMPORT
+  SIMULATOR
+  INTERNAL
+  PLIVO
+  TWILIO
+  WHATSAPP
+  CRM
+}
+
+enum CartStatus {
+  OPEN
+  ABANDONMENT_DUE
+  ABANDONED
+  PURCHASED
+  EXPIRED
+  SUPPRESSED
+}
+
+enum JourneyRunStatus {
+  PENDING
+  SUPPRESSED
+  ELIGIBLE
+  CALLING
+  HANDOFF
+  FOLLOWUP
+  ATTRIBUTION_PENDING
+  RECOVERED
+  EXPIRED
+  FAILED
+}
+
+enum CallStatus {
+  REQUESTED
+  QUEUED
+  RINGING
+  CONNECTED
+  TRANSFERRED
+  COMPLETED
+  FAILED
+  MISSED
+  CANCELED
+}
+
+enum MessageStatus {
+  REQUESTED
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+enum ConsentChannel {
+  VOICE
+  WHATSAPP
+  SMS
+  EMAIL
+}
+
+enum ConsentStatus {
+  UNKNOWN
+  ASSUMED_TRANSACTIONAL
+  OPTED_IN
+  OPTED_OUT
+}
+
+model MerchantOrganization {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users  OrganizationUser[]
+  brands Brand[]
+}
+
+model OrganizationUser {
+  id             String   @id @default(cuid())
+  organizationId String
+  email          String
+  name           String?
+  role           UserRole @default(VIEWER)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization MerchantOrganization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, email])
+}
+
+model Brand {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  defaultCountry String   @default("IN")
+  defaultTimezone String  @default("Asia/Kolkata")
+  reportingCurrency String @default("INR")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization MerchantOrganization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  markets       BrandMarket[]
+  connectors    StoreConnector[]
+  journeys      JourneyConfig[]
+  drafts        JourneyDraft[]
+  events        NormalizedEvent[]
+  customers     Customer[]
+  carts         Cart[]
+  orders        Order[]
+  calls         CallAttempt[]
+  messages      MessageAttempt[]
+}
+
+model BrandMarket {
+  id        String   @id @default(cuid())
+  brandId   String
+  country   String
+  timezone  String
+  currency  String
+  quietHoursJson Json?
+  callRulesJson  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@unique([brandId, country, currency])
+}
+
+model StoreConnector {
+  id              String          @id @default(cuid())
+  brandId         String
+  kind            ConnectorKind
+  status          ConnectorStatus @default(DRAFT)
+  externalStoreId String?
+  storeDomain     String?
+  capabilitiesJson Json           @default("{}")
+  secretRef       String?
+  connectedAt     DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  brand  Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  events NormalizedEvent[]
+
+  @@index([brandId, kind])
+}
+
+model JourneyConfig {
+  id         String        @id @default(cuid())
+  brandId    String
+  journeyId  String
+  name       String
+  status     JourneyStatus @default(DRAFT)
+  version    Int           @default(1)
+  configJson Json
+  publishedAt DateTime?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  runs  JourneyRun[]
+
+  @@index([brandId, journeyId, status])
+}
+
+model JourneyDraft {
+  id         String   @id @default(cuid())
+  brandId    String
+  journeyId  String
+  title      String
+  configJson Json
+  summary    String?
+  createdBy  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  brand       Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  patches     ConfigPatch[]
+  simulations SimulationRun[]
+}
+
+model ConfigPatch {
+  id        String   @id @default(cuid())
+  draftId   String
+  message   String
+  patchJson Json
+  createdAt DateTime @default(now())
+
+  draft JourneyDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+}
+
+model SimulationRun {
+  id          String   @id @default(cuid())
+  draftId     String
+  inputJson   Json
+  resultJson  Json
+  createdAt   DateTime @default(now())
+
+  draft JourneyDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+}
+
+model BrandKnowledgeSource {
+  id          String   @id @default(cuid())
+  brandId     String
+  kind        String
+  title       String
+  sourceUrl   String?
+  contentHash String?
+  rawJson     Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Customer {
+  id                 String   @id @default(cuid())
+  brandId            String
+  externalCustomerId String?
+  email              String?
+  phoneE164          String?
+  firstName          String?
+  lastName           String?
+  country            String?
+  tagsJson           Json?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  brand    Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  carts    Cart[]
+  orders   Order[]
+  consents ConsentRecord[]
+  suppressions SuppressionRecord[]
+
+  @@index([brandId, email])
+  @@index([brandId, phoneE164])
+  @@index([brandId, externalCustomerId])
+}
+
+model ConsentRecord {
+  id         String        @id @default(cuid())
+  brandId    String
+  customerId String?
+  channel    ConsentChannel
+  status     ConsentStatus @default(UNKNOWN)
+  source     String?
+  capturedAt DateTime      @default(now())
+  rawJson    Json?
+
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@index([brandId, channel, status])
+}
+
+model SuppressionRecord {
+  id         String   @id @default(cuid())
+  brandId    String
+  customerId String?
+  reason     String
+  source     String?
+  expiresAt  DateTime?
+  createdAt  DateTime @default(now())
+
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@index([brandId, reason])
+}
+
+model NormalizedEvent {
+  id             String      @id @default(cuid())
+  brandId        String
+  connectorId    String?
+  source         EventSource
+  eventType      String
+  externalId     String?
+  idempotencyKey String
+  occurredAt     DateTime
+  receivedAt     DateTime    @default(now())
+  payloadJson    Json
+
+  brand     Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  connector StoreConnector? @relation(fields: [connectorId], references: [id], onDelete: SetNull)
+
+  @@unique([brandId, idempotencyKey])
+  @@index([brandId, source, eventType])
+}
+
+model Cart {
+  id                 String     @id @default(cuid())
+  brandId            String
+  customerId         String?
+  externalCheckoutId String?
+  externalCartToken  String?
+  recoveryUrl        String?
+  status             CartStatus @default(OPEN)
+  totalAmountMinor   Int
+  currency           String
+  phoneE164          String?
+  email              String?
+  rawJson            Json?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  brand    Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  items    CartItem[]
+  runs     JourneyRun[]
+
+  @@index([brandId, externalCheckoutId])
+  @@index([brandId, externalCartToken])
+  @@index([brandId, status])
+}
+
+model CartItem {
+  id                 String @id @default(cuid())
+  cartId             String
+  externalProductId  String
+  externalVariantId  String?
+  title              String
+  quantity           Int
+  unitAmountMinor    Int
+  currency           String
+  productType        String?
+  tagsJson           Json?
+  rawJson            Json?
+
+  cart Cart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+
+  @@index([cartId])
+}
+
+model Order {
+  id                 String   @id @default(cuid())
+  brandId            String
+  customerId         String?
+  externalOrderId    String
+  externalCheckoutId String?
+  totalAmountMinor   Int
+  currency           String
+  placedAt           DateTime
+  rawJson            Json?
+  createdAt          DateTime @default(now())
+
+  brand    Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@unique([brandId, externalOrderId])
+  @@index([brandId, externalCheckoutId])
+}
+
+model JourneyRun {
+  id              String           @id @default(cuid())
+  brandId         String
+  journeyConfigId String
+  cartId          String
+  status          JourneyRunStatus @default(PENDING)
+  decisionJson    Json?
+  outcomeJson     Json?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  journeyConfig JourneyConfig @relation(fields: [journeyConfigId], references: [id], onDelete: Cascade)
+  cart          Cart          @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  calls         CallAttempt[]
+  messages      MessageAttempt[]
+  attributions  AttributionMatch[]
+
+  @@index([brandId, status])
+  @@unique([cartId, journeyConfigId])
+}
+
+model ProviderAccount {
+  id            String   @id @default(cuid())
+  brandId       String
+  providerKind  String
+  ownershipMode String
+  status        String   @default("draft")
+  secretRef     String?
+  configJson    Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([brandId, providerKind])
+}
+
+model CallAttempt {
+  id               String     @id @default(cuid())
+  brandId           String
+  journeyRunId      String
+  provider          String
+  providerCallId    String?
+  status            CallStatus @default(REQUESTED)
+  toPhoneE164       String
+  fromPhoneE164     String?
+  handoffRequested  Boolean    @default(false)
+  handoffCompleted  Boolean    @default(false)
+  recordingUrl      String?
+  transcriptUrl     String?
+  retentionExpiresAt DateTime?
+  startedAt         DateTime?
+  completedAt       DateTime?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  brand      Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  journeyRun JourneyRun @relation(fields: [journeyRunId], references: [id], onDelete: Cascade)
+  session    VoiceSession?
+
+  @@index([brandId, status])
+  @@index([provider, providerCallId])
+}
+
+model VoiceSession {
+  id            String   @id @default(cuid())
+  callAttemptId String   @unique
+  runtime       String
+  model         String?
+  stateJson     Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  callAttempt CallAttempt @relation(fields: [callAttemptId], references: [id], onDelete: Cascade)
+  segments    TranscriptSegment[]
+}
+
+model TranscriptSegment {
+  id             String   @id @default(cuid())
+  voiceSessionId String
+  speaker        String
+  text           String
+  startedMs      Int?
+  endedMs        Int?
+  createdAt      DateTime @default(now())
+
+  voiceSession VoiceSession @relation(fields: [voiceSessionId], references: [id], onDelete: Cascade)
+}
+
+model MessageAttempt {
+  id             String        @id @default(cuid())
+  brandId         String
+  journeyRunId    String?
+  provider        String
+  ownershipMode   String?
+  status          MessageStatus @default(REQUESTED)
+  toPhoneE164     String?
+  templateName    String?
+  payloadJson     Json?
+  providerMessageId String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  brand      Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  journeyRun JourneyRun? @relation(fields: [journeyRunId], references: [id], onDelete: SetNull)
+
+  @@index([brandId, status])
+}
+
+model AttributionMatch {
+  id           String   @id @default(cuid())
+  journeyRunId String
+  orderId      String?
+  basis        String
+  confidence   Float
+  amountMinor  Int
+  currency     String
+  matchedAt    DateTime @default(now())
+  rawJson      Json?
+
+  journeyRun JourneyRun @relation(fields: [journeyRunId], references: [id], onDelete: Cascade)
+
+  @@index([journeyRunId])
+}
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  organizationId String?
+  brandId        String?
+  actorEmail     String?
+  action         String
+  subjectType    String
+  subjectId      String?
+  metadataJson   Json?
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, action])
+  @@index([brandId, action])
+}

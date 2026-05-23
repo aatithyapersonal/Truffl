@@ -1,0 +1,33 @@
+{
+  "name": "truffl",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Truffl merchant dashboard and voice recovery automation platform.",
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run build:packages && npm run dev --workspace @truffl/web",
+    "dev:api": "npm run build:packages && npm run dev --workspace @truffl/api",
+    "dev:worker": "npm run build:packages && npm run dev --workspace @truffl/worker",
+    "build": "npm run build:packages && npm run build --workspace @truffl/api && npm run build --workspace @truffl/worker && npm run build --workspace @truffl/web",
+    "build:packages": "npm run build --workspace @truffl/core && npm run build --workspace @truffl/config && npm run build --workspace @truffl/connectors && npm run build --workspace @truffl/database",
+    "typecheck": "npm run typecheck --workspace @truffl/core && npm run typecheck --workspace @truffl/config && npm run typecheck --workspace @truffl/connectors && npm run typecheck --workspace @truffl/database && npm run typecheck --workspace @truffl/api && npm run typecheck --workspace @truffl/worker && npm run typecheck --workspace @truffl/web",
+    "lint": "npm run lint --workspace @truffl/web --if-present",
+    "db:generate": "npm run db:generate --workspace @truffl/database",
+    "db:migrate": "npm run db:migrate --workspace @truffl/database",
+    "db:studio": "npm run db:studio --workspace @truffl/database"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "overrides": {
+    "postcss": "8.5.10"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  }
+}
