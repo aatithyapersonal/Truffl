@@ -17,6 +17,8 @@ This document fills that gap. It makes concrete decisions about:
 - Security, compliance, and observability.
 - Exact first build path for High-AOV New Buyer.
 
+Update: founder/product clarifications from 2026-05-23 are captured in `docs/ARCHITECTURE_CLARIFICATIONS.md`. Those decisions supersede any earlier assumptions that the product is Shopify-only, India-only, or simulation-only. The product is a Truffl web dashboard with connector install surfaces, multi-country/multi-currency support from day one, product-agnostic D2C journey setup, and real outbound voice calls.
+
 The guiding decision is simple:
 
 **Build a modular monolith first, not microservices.**
@@ -35,7 +37,7 @@ Voice OS has many modules, but the MVP should run as one API service, one worker
 | Primary database | PostgreSQL | Durable relational model for events, state, outcomes, attribution |
 | ORM/migrations | Prisma | Clear schema, generated types, migrations, fast MVP iteration |
 | Object storage | S3-compatible storage | Call recordings, long transcripts, exports |
-| Auth | Closed-pilot admin auth first, production RBAC later | Avoid overbuilding multi-tenant auth before pilot |
+| Auth | Truffl merchant org auth first, production RBAC later | Merchants use the Truffl dashboard even when they install through Shopify |
 | Local dev | Docker Compose | Reproducible Postgres and Redis |
 | Deployment | One always-on API, one always-on worker, one dashboard | Webhooks and workers need always-on runtime |
 
@@ -59,6 +61,8 @@ packages/
 
 This keeps the product understandable while the workflow is still changing.
 
+This does not mean ignoring service boundaries. The code should keep clear module contracts for store connectors, voice providers, WhatsApp providers, journey orchestration, and attribution so these can be extracted later when scale or team ownership requires it.
+
 ## Repository Shape
 
 ```txt
@@ -74,11 +78,15 @@ voiceos/
       suppression/
       agent-compiler/
       attribution/
+      journey-drafts/
+      merchant-onboarding/
       crm/
       whatsapp/
       voice/
     connectors/
       shopify/
+      woocommerce/
+      custom-store/
       whatsapp/
       voice/
       sheets/
@@ -98,6 +106,8 @@ voiceos/
 
 Purpose:
 
+- Provides the chat-driven journey setup surface.
+- Converts plain-English requirements into draft journey configuration.
 - Shows eligible carts.
 - Shows journey runs.
 - Reviews calls and outcomes.
@@ -110,12 +120,15 @@ Runtime:
 - Next.js app.
 - Reads through API service, not directly from database in production.
 
+The first dashboard screen should optimize for journey setup while still exposing operations, attribution, and debugging views as live visual feedback. Chat creates draft config patches; publishing a journey remains an explicit action.
+
 ### 2. API Service
 
 Purpose:
 
 - Receives provider webhooks.
 - Exposes dashboard APIs.
+- Handles merchant org, brand, connector, and journey draft APIs.
 - Handles simulation endpoints.
 - Validates webhook signatures.
 - Writes normalized events.
@@ -144,6 +157,8 @@ Runtime:
 - BullMQ processors.
 - Always on.
 - Separate from API so webhooks remain fast.
+
+Real calls are in scope for MVP. Simulation remains useful for setup and QA, but the architecture must support placing outbound calls to test numbers through a telephony provider before pilot launch.
 
 ### 4. Database
 
@@ -211,6 +226,33 @@ Important correction: for Shopify, the internal `cart_abandoned` event should us
 | `crm_sync_requested` | Internal | CRM side effect requested |
 | `crm_sync_completed` | Internal | Outcome written to CRM/Sheet |
 | `attribution_matched` | Internal | Order matched to journey run |
+
+### Store Connector Contract
+
+Every ecommerce platform must normalize into the internal event model.
+
+Required platform capabilities:
+
+- Connect store and persist credentials.
+- Register or document event delivery.
+- Receive cart/checkout created and updated signals.
+- Receive order created/paid signals.
+- Provide a recovery URL.
+- Provide cart items, prices, currency, product identifiers, and customer/contact fields when available.
+- Provide product catalog context or support catalog sync.
+
+Shopify is the first implementation. WooCommerce and custom stores should use the same contract, not separate journey logic.
+
+### Money And Markets
+
+All money values must include:
+
+- `amount_minor`
+- `currency`
+- Optional `presentment_amount_minor`
+- Optional `presentment_currency`
+
+High-AOV thresholds live in brand journey configuration and can vary by currency and market. No production rule should hardcode INR 10000.
 
 ## Exact High-AOV New Buyer Flow
 

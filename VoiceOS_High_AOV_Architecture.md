@@ -4,6 +4,8 @@
 
 This architecture defines the first buildable version of Voice OS for D2C abandoned cart recovery.
 
+Update: product and connector decisions clarified on 2026-05-23 are captured in `docs/ARCHITECTURE_CLARIFICATIONS.md`. In short, Truffl is a merchant-facing SaaS dashboard with store connectors. Shopify is the first connector and install surface, not the whole product.
+
 The platform architecture is intentionally journey-agnostic, but the first implementation is focused on one journey:
 
 **High-AOV New Buyer Cart Recovery**
@@ -14,7 +16,7 @@ The goal is to recover high-value abandoned carts by detecting eligible Shopify 
 
 Build a reusable Voice OS spine, then plug the High-AOV New Buyer journey into it.
 
-The system should not be hardcoded as "mattress cart recovery", but it also should not become a generic journey builder in v1. The right v1 shape is:
+The system must be product-agnostic across D2C categories. It should not be hardcoded as "mattress cart recovery", but it also should not become a fully generic journey builder in v1. The right v1 shape is:
 
 - Generic event ingestion.
 - Generic customer/cart context builder.
@@ -80,7 +82,7 @@ Start with the smallest connector set that proves the product.
 
 | Layer | MVP Provider | Purpose |
 | --- | --- | --- |
-| Storefront | Shopify | Abandoned checkout, customer, cart, product, order events |
+| Storefront | Shopify first, connector contract for other stores | Abandoned checkout, customer, cart, product, order events |
 | Voice | Exotel, Twilio, or Plivo | Outbound call, call status, recording, transcript |
 | WhatsApp | Interakt, WATI, Zoko, or WhatsApp Cloud API | Cart link and post-call follow-up |
 | CRM | Google Sheets | Fast pilot-friendly outcome logging |
@@ -98,26 +100,26 @@ A cart is eligible for this journey when all conditions are true:
 | --- | --- |
 | Event type | `cart_abandoned` |
 | Wait time | 30 minutes after abandonment |
-| Cart value | Greater than or equal to INR 10000 |
+| Cart value | Brand-configured threshold per currency and market |
 | Customer type | First-time buyer |
 | Phone | Valid phone available |
 | Product category | High-consideration category |
 | Purchase status | No order created after abandonment |
 | Suppression | Not DND, not opted out, not over attempt limit |
 
-### High-Consideration Categories
+### High-Consideration Products
 
-For v1, define these as brand-configured categories rather than inferred by AI.
+For v1, define high-consideration products through brand-configured rules rather than hardcoded categories or unreviewed AI inference.
 
-Examples:
+Examples of rule inputs:
 
-- Mattress
-- Furniture
-- Appliances
-- Electronics
-- Jewelry
-- Premium health/wellness products
-- High-value fashion or accessories
+- Product collections.
+- Product tags.
+- Product type.
+- Price bands.
+- Vendor.
+- SKU or variant lists.
+- Brand-uploaded product notes.
 
 ### Journey Flow
 

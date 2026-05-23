@@ -4,6 +4,8 @@ Voice OS is a D2C abandoned-cart recovery system focused first on the **High-AOV
 
 The MVP goal is to detect high-value abandoned Shopify carts, decide whether voice outreach is appropriate, generate a safe product-specific call plan, trigger voice and WhatsApp follow-up, write CRM outcomes, and attribute recovered revenue.
 
+Current product direction: Truffl is a merchant-facing web dashboard with store connectors. Shopify is the first connector and install surface, while the architecture stays ready for WooCommerce and custom stores through a normalized connector contract. See [docs/ARCHITECTURE_CLARIFICATIONS.md](docs/ARCHITECTURE_CLARIFICATIONS.md).
+
 ## Current Artifacts
 
 - [VoiceOS_High_AOV_Architecture.md](./VoiceOS_High_AOV_Architecture.md): product and system architecture for the reusable Voice OS spine and first journey.
