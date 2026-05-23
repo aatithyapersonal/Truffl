@@ -38,6 +38,8 @@ GitHub gives:
 - Project history.
 - A shared place for your cofounder to review product-level changes.
 
+For truly equal founder access, prefer a GitHub organization with both founders as organization owners. A personal repository can grant collaborator access, but it does not make another person equal owner of the account itself.
+
 ### 3. Issues for Work Tracking
 
 Use GitHub Issues for build tasks and product questions.
@@ -106,6 +108,8 @@ Real secrets should live in:
 - GitHub Actions secrets for CI.
 - Deployment provider secrets for production.
 
+Never paste production secrets into docs, issues, commit messages, pull requests, screenshots, or chat transcripts unless the channel is explicitly designed for secret handling.
+
 ### 8. Customer Data Discipline
 
 Do not store real customer data in the repo.
@@ -136,10 +140,32 @@ A feature is not done until:
 - It does not leak secrets or real customer data.
 - It has a dashboard or log trail if it affects operations.
 
+### 11. Tooling Discipline
+
+Production primitives should be installed and configured, not bypassed.
+
+Baseline local tools:
+
+- Node.js 24 LTS through `nvm`.
+- pnpm 11 through Corepack.
+- Docker Desktop, OrbStack, or Colima for local Postgres and Redis.
+- Git and GitHub remote connected over SSH.
+
+Before pushing meaningful code changes:
+
+- Install dependencies with `pnpm install`.
+- Generate database client code with `pnpm db:generate` when Prisma changes or dependencies are refreshed.
+- Run `pnpm typecheck`.
+- Run `pnpm build`.
+- Commit lockfile changes with dependency changes.
+
+Dry-run modes are allowed for early slices, but they must preserve the same architecture as the real service path.
+
 ## Immediate Next Setup
 
-1. Create private GitHub repo.
-2. Push `main`.
-3. Add your cofounder as a collaborator with appropriate access.
-4. Create first GitHub Issues for the MVP build milestones.
-5. Start scaffold work from a clean branch or a small direct commit.
+1. Confirm the GitHub repository is private before real secrets, customer data, or sensitive business details are added.
+2. Have the cofounder accept the GitHub collaborator invitation.
+3. Upgrade access to the highest appropriate role, or move the repo into a founder-owned GitHub organization.
+4. Install Docker Desktop, OrbStack, or Colima.
+5. Create service accounts and development credentials from `docs/SERVICE_SETUP.md`.
+6. Create first GitHub Issues for the MVP build milestones.

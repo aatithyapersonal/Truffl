@@ -11,8 +11,8 @@
   },
   "dependencies": {
     "@fastify/cors": "^11.2.0",
-    "@truffl/config": "0.1.0",
-    "@truffl/core": "0.1.0",
+    "@truffl/config": "workspace:*",
+    "@truffl/core": "workspace:*",
     "fastify": "^5.8.5",
     "zod": "^4.2.0"
   },

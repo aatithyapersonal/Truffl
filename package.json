@@ -4,27 +4,21 @@
   "private": true,
   "description": "Truffl merchant dashboard and voice recovery automation platform.",
   "type": "module",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
+  "packageManager": "pnpm@11.2.2",
   "scripts": {
-    "dev": "npm run build:packages && npm run dev --workspace @truffl/web",
-    "dev:api": "npm run build:packages && npm run dev --workspace @truffl/api",
-    "dev:worker": "npm run build:packages && npm run dev --workspace @truffl/worker",
-    "build": "npm run build:packages && npm run build --workspace @truffl/api && npm run build --workspace @truffl/worker && npm run build --workspace @truffl/web",
-    "build:packages": "npm run build --workspace @truffl/core && npm run build --workspace @truffl/config && npm run build --workspace @truffl/connectors && npm run build --workspace @truffl/database",
-    "typecheck": "npm run typecheck --workspace @truffl/core && npm run typecheck --workspace @truffl/config && npm run typecheck --workspace @truffl/connectors && npm run typecheck --workspace @truffl/database && npm run typecheck --workspace @truffl/api && npm run typecheck --workspace @truffl/worker && npm run typecheck --workspace @truffl/web",
-    "lint": "npm run lint --workspace @truffl/web --if-present",
-    "db:generate": "npm run db:generate --workspace @truffl/database",
-    "db:migrate": "npm run db:migrate --workspace @truffl/database",
-    "db:studio": "npm run db:studio --workspace @truffl/database"
+    "dev": "pnpm build:packages && pnpm --filter @truffl/web dev",
+    "dev:api": "pnpm build:packages && pnpm --filter @truffl/api dev",
+    "dev:worker": "pnpm build:packages && pnpm --filter @truffl/worker dev",
+    "build": "pnpm build:packages && pnpm --filter @truffl/api build && pnpm --filter @truffl/worker build && pnpm --filter @truffl/web build",
+    "build:packages": "pnpm --filter @truffl/core build && pnpm --filter @truffl/config build && pnpm --filter @truffl/connectors build && pnpm --filter @truffl/database build",
+    "typecheck": "pnpm --filter @truffl/core typecheck && pnpm --filter @truffl/config typecheck && pnpm --filter @truffl/connectors typecheck && pnpm --filter @truffl/database typecheck && pnpm --filter @truffl/api typecheck && pnpm --filter @truffl/worker typecheck && pnpm --filter @truffl/web typecheck",
+    "lint": "pnpm --filter @truffl/web lint",
+    "db:generate": "pnpm --filter @truffl/database db:generate",
+    "db:migrate": "pnpm --filter @truffl/database db:migrate",
+    "db:studio": "pnpm --filter @truffl/database db:studio"
   },
   "engines": {
-    "node": ">=22"
-  },
-  "overrides": {
-    "postcss": "8.5.10"
+    "node": ">=24"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

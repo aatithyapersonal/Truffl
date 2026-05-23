@@ -1,0 +1,14 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+overrides:
+  postcss: 8.5.10
+allowBuilds:
+  '@prisma/client': true
+  '@prisma/engines': true
+  esbuild: true
+  msgpackr-extract: true
+  prisma: true
+  sharp: true
+minimumReleaseAgeExclude:
+  - bullmq@5.77.1

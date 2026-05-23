@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@truffl/core": "0.1.0",
+    "@truffl/core": "workspace:*",
     "lucide-react": "^0.561.0",
     "next": "^16.2.6",
     "postcss": "8.5.10",

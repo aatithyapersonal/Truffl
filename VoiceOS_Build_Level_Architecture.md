@@ -29,7 +29,8 @@ Voice OS has many modules, but the MVP should run as one API service, one worker
 
 | Layer | Decision | Why |
 | --- | --- | --- |
-| Language | TypeScript | One language across dashboard, API, worker, shared domain logic |
+| Language/runtime | TypeScript on Node.js 24 LTS | One language across dashboard, API, worker, shared domain logic on a stable production runtime |
+| Package manager | pnpm 11 workspaces via Corepack | Strict workspace dependency behavior, reproducible installs, explicit lockfile |
 | Dashboard | Next.js | Strong dashboard app structure, routing, server rendering, API-adjacent development |
 | API service | Fastify | Lightweight, fast webhook/API server with schema validation and plugin structure |
 | Worker service | BullMQ worker | Delayed jobs, retries, backoff, queue orchestration |

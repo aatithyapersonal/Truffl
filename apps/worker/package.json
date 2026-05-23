@@ -10,8 +10,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@truffl/config": "0.1.0",
-    "@truffl/core": "0.1.0",
+    "@truffl/config": "workspace:*",
+    "@truffl/core": "workspace:*",
     "bullmq": "^5.77.1",
     "ioredis": "^5.8.2"
   },

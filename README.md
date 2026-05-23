@@ -11,46 +11,64 @@ Current product direction: Truffl is a merchant-facing web dashboard with store 
 - [VoiceOS_High_AOV_Architecture.md](./VoiceOS_High_AOV_Architecture.md): product and system architecture for the reusable Voice OS spine and first journey.
 - [VoiceOS_Build_Level_Architecture.md](./VoiceOS_Build_Level_Architecture.md): implementation-level architecture covering stack, services, database, queues, APIs, provider adapters, and build milestones.
 - [docs/ARCHITECTURE_CLARIFICATIONS.md](./docs/ARCHITECTURE_CLARIFICATIONS.md): current product decisions for Truffl dashboard, store connectors, production voice architecture, and build order.
+- [docs/SERVICE_SETUP.md](./docs/SERVICE_SETUP.md): required local tools, service accounts, and secret setup checklist.
 
 ## Local Development
 
 Requirements today:
 
-- Node.js 22 or newer.
-- npm.
-
-Useful soon:
-
+- Node.js 24 LTS.
+- pnpm 11 via Corepack.
 - Docker Desktop, OrbStack, or Colima for local Postgres and Redis.
+
+Use the project Node version:
+
+```sh
+nvm use 24
+corepack enable
+```
 
 Install dependencies:
 
 ```sh
-npm_config_cache=/private/tmp/truffl-npm-cache npm install
+pnpm install
 ```
 
 Run the dashboard:
 
 ```sh
-npm run dev
+pnpm dev
 ```
 
 Run the API:
 
 ```sh
-npm run dev:api
+pnpm dev:api
 ```
 
 Run the worker in dry-run mode:
 
 ```sh
-npm run dev:worker
+pnpm dev:worker
 ```
 
 Start local Postgres and Redis after Docker is installed:
 
 ```sh
 docker compose up -d
+```
+
+Generate the database client after installing dependencies:
+
+```sh
+pnpm db:generate
+```
+
+Validate before pushing:
+
+```sh
+pnpm typecheck
+pnpm build
 ```
 
 ## MVP Focus

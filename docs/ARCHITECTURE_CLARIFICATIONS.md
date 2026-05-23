@@ -271,6 +271,18 @@ Recommended production baseline:
 
 Vercel can still be considered for the marketing site or dashboard frontend if useful, but it should not be the core runtime for voice sessions, long-running workers, webhook orchestration, or provider callbacks.
 
+### Development Tooling Baseline
+
+The local development environment should mirror the production shape where it matters:
+
+- Node.js 24 LTS.
+- pnpm 11 workspaces through Corepack.
+- Docker-managed Postgres and Redis for local stateful services.
+- Prisma migrations for database evolution.
+- Real provider adapters behind interfaces, with dry-run implementations only as controlled substitutes.
+
+Do not design around missing tools. If Docker, Node 24, pnpm, provider credentials, or cloud accounts are missing, install or create them instead of weakening the architecture.
+
 ## Build Strategy
 
 Frontend and backend should be built hand in hand through vertical slices.

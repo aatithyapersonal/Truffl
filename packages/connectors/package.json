@@ -16,7 +16,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@truffl/core": "0.1.0"
+    "@truffl/core": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.9.0"

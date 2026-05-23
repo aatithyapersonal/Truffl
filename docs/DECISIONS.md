@@ -261,6 +261,51 @@ Vertical slices let the UI, data model, journey drafts, simulator, voice calls, 
 
 Follow-up:
 
+Keep each slice end-to-end: dashboard surface, API contract, domain logic, persistence shape, worker behavior when relevant, and verification.
+
+## 2026-05-23: Node 24 LTS And pnpm Are The Development Baseline
+
+Decision:
+
+Use Node.js 24 LTS and pnpm 11 through Corepack as the project package manager baseline.
+
+Context:
+
+The project needs a consistent, production-grade JavaScript runtime and workspace package manager before the codebase grows.
+
+Options considered:
+
+- Continue with npm workspaces.
+- Switch to pnpm workspaces.
+
+Rationale:
+
+pnpm gives stricter dependency behavior, faster workspace installs, and an explicit lockfile suited to a multi-package repo. Node 24 LTS keeps the runtime aligned with a serious production baseline instead of whatever happens to be installed locally.
+
+Follow-up:
+
+Keep `.nvmrc`, `packageManager`, `pnpm-lock.yaml`, and local setup docs synchronized. Do not merge dependency changes without an updated lockfile and passing verification.
+
+## 2026-05-23: No Missing-Tool Workarounds For Production Primitives
+
+Decision:
+
+If a production primitive is required, install or configure the right tool instead of coding around its absence.
+
+Context:
+
+Truffl depends on real infrastructure primitives: Docker for local Postgres/Redis, managed databases and queues later, Plivo/Twilio for calls, OpenAI for voice/LLM, Shopify for store connection, AWS for production runtime, and Meta Cloud API for WhatsApp.
+
+Rationale:
+
+Temporary shortcuts become hidden product debt. It is acceptable to use a dry-run mode for focused local development, but not to design the production architecture around missing local tools or missing service accounts.
+
+Follow-up:
+
+Track required tools and accounts in `docs/SERVICE_SETUP.md`, and update the architecture when a provider choice changes.
+
+Follow-up:
+
 Start with dashboard shell plus real draft configuration APIs, then add simulator and Plivo test calls.
 
 ## 2026-05-23: AI Disclosure Configurable, Off By Default For India Pilot
