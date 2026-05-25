@@ -11,22 +11,22 @@ This tracks where the setup order stands right now.
 | Node.js | Done | Node `v24.16.0` verified locally. |
 | pnpm | Done | pnpm `11.2.2` verified locally through Corepack. |
 | GitHub | Mostly done | Repo is connected and pushed. Cofounder invite was sent to `Girlrox`; access still depends on invite acceptance. Repo visibility should be confirmed before secrets/customer data. |
-| Docker | Installed, engine not running | Docker CLI `29.4.3` and Compose `v5.1.4` are installed. Docker Desktop must be opened/running before Postgres and Redis can start. |
-| Local Postgres/Redis | Blocked by Docker engine | Run `docker compose up -d` after Docker Desktop is running. |
+| Docker | Done | Docker CLI `29.4.3` and Compose `v5.1.4` are installed. Docker Desktop is running and Compose services started successfully. |
+| Local Postgres/Redis | Done | `truffl-postgres` and `truffl-redis` were started with Docker Compose and reported healthy. Initial Prisma migration has been committed and pushed. |
 | Plivo | Deferred | Live India telephony needs credits/work-account approval. Use simulated voice until then. |
 | Twilio | Deferred | Live global telephony needs credits/work-account approval. Use simulated voice until then. |
 | OpenAI | Key available, rotate recommended | A key was pasted in chat, so rotate it before serious use and store only in local `.env` or a secret manager. |
-| Shopify | Account/store created | Need app credentials, dev store domain, webhook secret/client secret, app URL, and eventually an offline access token. |
+| Shopify | Partner app created | Shopify Partner app `Truffl` was created in the Dev Dashboard. App id: `372132184065`. Client ID is available. Still need client secret stored locally, dev store domain, app URL/redirect URLs, scopes, and eventually an offline access token. |
 | AWS | Account created | Need CLI/profile setup, budget alert, region confirmation, and later S3/RDS/Redis/ECS resources. |
 | Meta WhatsApp | Account setup in progress | Need app, WABA, phone number ID, business account ID, token, webhook verify token, and app secret/webhook secret. |
 
 ## Immediate Next Actions
 
-1. Open Docker Desktop manually and wait until it says the engine is running.
-2. Start local Postgres and Redis with `docker compose up -d`.
-3. Create local `.env` from `.env.example` and keep real secrets out of Git.
-4. Rotate the OpenAI key that was pasted in chat, then place the new key only in local `.env`.
-5. Pull Shopify credentials from the Dev Dashboard/app settings.
+1. Store the Shopify client secret only in local `.env` or a secret manager.
+2. Create or choose the Shopify development store and record its `*.myshopify.com` domain.
+3. Decide the local tunnel/staging URL, then configure Shopify app URL and redirect URLs.
+4. Set the initial Shopify scopes needed for the abandoned-cart pilot.
+5. Rotate the OpenAI key that was pasted in chat, then place the new key only in local `.env`.
 6. Configure AWS CLI access with either IAM Identity Center or a named profile.
 7. Pull Meta WhatsApp IDs/tokens from the Meta App Dashboard after the WhatsApp product is configured.
 
@@ -34,12 +34,25 @@ This tracks where the setup order stands right now.
 
 | Variable | Where it comes from |
 | --- | --- |
-| `SHOPIFY_API_KEY` | Shopify Dev Dashboard app settings: Client ID. |
-| `SHOPIFY_API_SECRET` | Shopify Dev Dashboard app settings: Client secret. |
+| `SHOPIFY_API_KEY` | Shopify Dev Dashboard app settings: Client ID. Current app Client ID: `2ef973a6e982bafc7710adf1499ac2d1`. |
+| `SHOPIFY_API_SECRET` | Shopify Dev Dashboard app settings: Client secret. Do not commit this. |
 | `SHOPIFY_APP_URL` | Our public app URL. Local development will need a tunnel URL later. |
 | `SHOPIFY_WEBHOOK_SECRET` | Same practical secret source as the app client secret for verifying Shopify webhooks. |
 | `SHOPIFY_ADMIN_ACCESS_TOKEN` | Generated through app install/OAuth for the development store. |
 | `SHOPIFY_STORE_DOMAIN` | Development store domain, for example `store-name.myshopify.com`. |
+
+## Shopify App Created
+
+| Field | Value |
+| --- | --- |
+| Partner organization | `Truffl` |
+| App name | `Truffl` |
+| App id | `372132184065` |
+| Client ID | `2ef973a6e982bafc7710adf1499ac2d1` |
+| Created at | May 25, 2026, 6:55 pm IST |
+| Current dashboard URL | `https://dev.shopify.com/dashboard/219768047/apps/372132184065/settings` |
+
+The generated client secret is intentionally not documented here. Store it only in local `.env`, a deployment secret store, or a password manager.
 
 ## AWS Values Needed
 

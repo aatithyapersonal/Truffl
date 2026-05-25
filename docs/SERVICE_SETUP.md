@@ -158,6 +158,16 @@ Needed:
 - Webhook signing secret.
 - Offline access token flow.
 
+Created:
+
+- Partner organization: `Truffl`
+- Shopify app: `Truffl`
+- App id: `372132184065`
+- Client ID: `2ef973a6e982bafc7710adf1499ac2d1`
+- Settings URL: `https://dev.shopify.com/dashboard/219768047/apps/372132184065/settings`
+
+Do not commit the generated client secret. Keep it in local `.env` during development and a managed secret store for production.
+
 Official setup link:
 
 - https://partners.shopify.com/
