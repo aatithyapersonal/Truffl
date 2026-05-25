@@ -13,15 +13,16 @@
     "build:packages": "pnpm --filter @truffl/core build && pnpm --filter @truffl/config build && pnpm --filter @truffl/connectors build && pnpm --filter @truffl/database build",
     "typecheck": "pnpm --filter @truffl/core typecheck && pnpm --filter @truffl/config typecheck && pnpm --filter @truffl/connectors typecheck && pnpm --filter @truffl/database typecheck && pnpm --filter @truffl/api typecheck && pnpm --filter @truffl/worker typecheck && pnpm --filter @truffl/web typecheck",
     "lint": "pnpm --filter @truffl/web lint",
-    "db:generate": "pnpm --filter @truffl/database db:generate",
-    "db:migrate": "pnpm --filter @truffl/database db:migrate",
-    "db:studio": "pnpm --filter @truffl/database db:studio"
+    "db:generate": "dotenv -e .env -- pnpm --filter @truffl/database db:generate",
+    "db:migrate": "dotenv -e .env -- pnpm --filter @truffl/database db:migrate",
+    "db:studio": "dotenv -e .env -- pnpm --filter @truffl/database db:studio"
   },
   "engines": {
     "node": ">=24"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
+    "dotenv-cli": "^11.0.0",
     "typescript": "^5.9.0"
   }
 }
