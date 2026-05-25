@@ -12,6 +12,7 @@ Current product direction: Truffl is a merchant-facing web dashboard with store 
 - [VoiceOS_Build_Level_Architecture.md](./VoiceOS_Build_Level_Architecture.md): implementation-level architecture covering stack, services, database, queues, APIs, provider adapters, and build milestones.
 - [docs/ARCHITECTURE_CLARIFICATIONS.md](./docs/ARCHITECTURE_CLARIFICATIONS.md): current product decisions for Truffl dashboard, store connectors, production voice architecture, and build order.
 - [docs/SERVICE_SETUP.md](./docs/SERVICE_SETUP.md): required local tools, service accounts, and secret setup checklist.
+- [docs/SETUP_STATUS.md](./docs/SETUP_STATUS.md): current setup progress and immediate next actions.
 
 ## Local Development
 

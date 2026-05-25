@@ -76,12 +76,18 @@ Official setup link:
 Environment variables:
 
 ```sh
-VOICE_PROVIDER=plivo
+VOICE_PROVIDER=mock
 PLIVO_AUTH_ID=
 PLIVO_AUTH_TOKEN=
 PLIVO_FROM_NUMBER=
 VOICE_PROVIDER_WEBHOOK_SECRET=
 ```
+
+Current decision:
+
+- Use `VOICE_PROVIDER=mock` until Plivo/Twilio credits and work-account approvals are ready.
+- Keep Plivo as the India-first live adapter target.
+- Keep Twilio as the broader/global live adapter target.
 
 ## Twilio
 
