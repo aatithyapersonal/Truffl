@@ -29,6 +29,24 @@ Follow-up:
 
 Build the local journey simulator first, then add Shopify ingestion and live provider integrations.
 
+## 2026-05-26: Production-Grade Core, Simulated Edges
+
+Decision:
+
+Build the voice-agent intelligence layer first. Keep the core agent builder production-grade, but use simulators for external integrations until the builder loop is valuable.
+
+Context:
+
+The product vision is broader than Shopify abandoned-cart recovery. Users should be able to describe a use case in chat and have Truffl generate the voice agent components: variables, data schema, knowledgebase plan, prompts, script, rules, tools, provider choices, tests, analytics, and deployment plan.
+
+Rationale:
+
+Shopify, telephony, WhatsApp, CRM, and cloud infrastructure are important adapter edges, but they should not consume the first iteration. The platform's unique value is turning natural language into working voice-agent configuration and testable behavior.
+
+Follow-up:
+
+Build the conversational builder, agent spec compiler, custom variable extraction, data upload ingestion, knowledge planner, simulator, and basic analytics before returning to live integrations.
+
 ## 2026-05-23: Use Modular Monolith for MVP
 
 Decision:

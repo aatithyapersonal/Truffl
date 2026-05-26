@@ -1,40 +1,48 @@
 # Architecture Clarifications
 
-Date: 2026-05-23
+Date: 2026-05-26
 
 This document captures the product and architecture direction clarified after the initial Voice OS architecture draft.
 
 ## Product Definition
 
-Truffl is a merchant-facing SaaS product for configuring, running, and observing AI voice recovery journeys.
+Truffl is a conversational platform for building, testing, configuring, and eventually deploying AI voice agents from natural-language instructions.
 
 The core product is not a browser extension, Codex plugin, or Shopify-only plugin. The core product is:
 
 - A Truffl web dashboard.
+- A chat-driven voice-agent builder.
+- An intelligence layer that converts chat into agent specs, variables, prompts, scripts, tools, tests, knowledge, and deployment plans.
+- A contact/customer data ingestion layer for CSV, spreadsheets, PDFs, JSON, and later live connectors.
+- A knowledgebase builder for user-provided and approved online sources.
+- A simulator for voice-agent behavior, call queues, outcomes, and analytics.
 - A store connector layer.
 - A journey configuration and orchestration backend.
-- A real outbound voice execution stack.
-- WhatsApp and CRM follow-up connectors.
-- Attribution and operations visibility.
+- A real outbound voice execution stack later, behind provider adapters.
+- Analytics, recordings, transcripts, attribution, and operations visibility.
 
-Shopify is the first store connector and first install surface. Merchants may discover or install Truffl through a Shopify app, but the app should launch or redirect into the Truffl dashboard where the main setup and operations experience lives.
+Shopify is a useful connector and install surface, but it is not the foundation of the first build. The foundation is the intelligence layer that can design and test voice agents even when live integrations are simulated.
+
+See `docs/VOICE_AGENT_INTELLIGENCE_LAYER.md` for the current source of truth on the core builder.
 
 ## Merchant Onboarding Journey
 
-The ideal merchant flow is:
+The ideal user flow is:
 
-1. Merchant finds Truffl through Shopify App Store, a direct invite, or outbound sales.
-2. Merchant installs the Shopify app or connects a store from inside Truffl.
-3. Shopify grants required scopes and redirects the merchant to Truffl.
-4. Truffl creates or finds the merchant organization and brand.
-5. Truffl shows connector health: store connected, webhooks active, data permissions, phone data availability, order attribution readiness.
-6. Merchant enters the chat-driven journey setup screen.
-7. Merchant describes the desired voice journey in plain English.
-8. Truffl converts the conversation into draft journey configuration.
-9. Merchant reviews visual configuration, test calls, sample cart simulation, compliance warnings, and expected behavior.
-10. Merchant publishes the journey.
+1. User opens the Truffl builder.
+2. User describes a voice-agent use case in plain English.
+3. Truffl extracts goals, variables, data requirements, knowledge needs, rules, risks, and missing details.
+4. Truffl asks focused follow-up questions only when required.
+5. Truffl generates a live voice-agent spec: prompts, script, state machine, tools, variables, data schema, tests, and deployment plan.
+6. User uploads customer/contact data or connects a simulated/live source.
+7. Truffl maps the data, validates required fields, and creates a test call queue.
+8. User tests the agent in text/voice simulation.
+9. User refines behavior by chatting again.
+10. User deploys later through real telephony, messaging, store, and CRM adapters.
 
-The Shopify app is therefore a connector and launch surface. The Truffl dashboard is the product home.
+The chat interface should act like a capable builder. It should complete tasks, show what changed, surface blockers, and suggest next actions.
+
+Shopify, WooCommerce, Plivo, Twilio, Meta, and CRMs are therefore adapter edges. The Truffl dashboard and intelligence layer are the product home.
 
 ## Store Connector Strategy
 
