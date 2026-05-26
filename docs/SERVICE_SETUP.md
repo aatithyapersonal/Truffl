@@ -170,6 +170,12 @@ Created:
 
 Do not commit the generated client secret. Keep it in local `.env` during development and a managed secret store for production.
 
+Local status as of May 26, 2026:
+
+- Client ID, client secret, webhook secret, and development store domain are present in local `.env`.
+- The secret values are intentionally not documented or committed.
+- Next: configure app URL, redirect URLs, scopes, install flow, and webhook ingestion.
+
 Official setup link:
 
 - https://partners.shopify.com/
