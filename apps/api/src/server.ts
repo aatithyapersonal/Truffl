@@ -2,9 +2,12 @@ import cors from "@fastify/cors";
 import Fastify from "fastify";
 import { z } from "zod";
 import {
+  applyBuilderMessage,
   applyMerchantMessage,
+  createInitialAgentBuilderDraft,
   createInitialHighAovDraft,
   createSampleHighAovEvent,
+  type AgentBuilderDraft,
   type JourneyDraft
 } from "@truffl/core";
 import { loadEnv } from "@truffl/config";
@@ -12,6 +15,7 @@ import { loadEnv } from "@truffl/config";
 const env = loadEnv();
 const app = Fastify({ logger: true });
 const drafts = new Map<string, JourneyDraft>();
+const agentDrafts = new Map<string, AgentBuilderDraft>();
 
 await app.register(cors, {
   origin: [env.APP_URL, "http://localhost:3000"],
@@ -31,6 +35,15 @@ function getOrCreateSampleDraft() {
   return draft;
 }
 
+function getOrCreateAgentBuilderDraft() {
+  const existing = agentDrafts.get("agent_builder_demo");
+  if (existing) return existing;
+
+  const draft = createInitialAgentBuilderDraft();
+  agentDrafts.set(draft.id, draft);
+  return draft;
+}
+
 app.get("/health", async () => ({
   ok: true,
   service: "truffl-api",
@@ -38,6 +51,18 @@ app.get("/health", async () => ({
 }));
 
 app.get("/api/journey-drafts/sample", async () => getOrCreateSampleDraft());
+
+app.get("/api/agent-builder/sample", async () => getOrCreateAgentBuilderDraft());
+
+app.post("/api/agent-builder/:draftId/messages", async (request, reply) => {
+  const params = z.object({ draftId: z.string() }).parse(request.params);
+  const body = messageBodySchema.parse(request.body);
+  const draft = agentDrafts.get(params.draftId) ?? getOrCreateAgentBuilderDraft();
+  const updated = applyBuilderMessage(draft, body.content);
+  agentDrafts.set(updated.id, updated);
+
+  return reply.send(updated);
+});
 
 app.post("/api/journey-drafts", async () => {
   const draft = createInitialHighAovDraft();
