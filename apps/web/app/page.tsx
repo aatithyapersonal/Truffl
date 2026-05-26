@@ -5,9 +5,11 @@ import {
   Bot,
   CheckCircle2,
   CircleAlert,
+  ClipboardCheck,
   Database,
   FileUp,
   Gauge,
+  FileText,
   ListChecks,
   MessageSquare,
   Mic,
@@ -38,18 +40,44 @@ export default function Home() {
   const [draft, setDraft] = useState<AgentBuilderDraft>(() => createInitialAgentBuilderDraft());
   const [message, setMessage] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [chatMode, setChatMode] = useState<"llm" | "local">("llm");
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
   const requiredFields = useMemo(() => draft.contactSchema.filter((field) => field.required), [draft.contactSchema]);
   const mappedRequiredFields = requiredFields.filter((field) => field.status === "mapped");
   const blockedTasks = draft.tasks.filter((task) => task.status === "blocked").length;
 
-  function submitMessage(event: FormEvent<HTMLFormElement>) {
+  async function submitMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const content = message.trim();
     if (!content) return;
 
-    setDraft((current) => applyBuilderMessage(current, content));
     setMessage("");
+    setIsSending(true);
+
+    if (apiUrl) {
+      try {
+        const response = await fetch(`${apiUrl}/api/agent-builder/${draft.id}/messages`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content })
+        });
+
+        if (response.ok) {
+          setDraft((await response.json()) as AgentBuilderDraft);
+          setChatMode("llm");
+          setIsSending(false);
+          return;
+        }
+      } catch {
+        // The local compiler keeps the product usable if the API or LLM is unavailable.
+      }
+    }
+
+    setDraft((current) => applyBuilderMessage(current, content));
+    setChatMode("local");
+    setIsSending(false);
   }
 
   async function handleUpload(file?: File) {
@@ -113,7 +141,7 @@ export default function Home() {
             onChange={(event) => setMessage(event.target.value)}
             placeholder="Build a voice agent for abandoned carts, appointment booking, support follow-up..."
           />
-          <button aria-label="Send message" type="submit">
+          <button aria-label="Send message" disabled={isSending} type="submit">
             <Send size={18} />
           </button>
         </form>
@@ -128,7 +156,7 @@ export default function Home() {
           <div className="topbar-actions">
             <span className="status-pill">
               <Sparkles size={16} />
-              Simulated edges
+              {chatMode === "llm" ? "LLM chat path" : "Local fallback"}
             </span>
             <span className="status-pill muted">
               <CircleAlert size={16} />
@@ -177,10 +205,22 @@ export default function Home() {
         </div>
 
         <div className="work-grid">
-          <section className="work-section wide">
-            <SectionTitle icon={PhoneCall} title="Voice Agent" />
+          <section className="work-section prompt-studio">
+            <div className="prompt-header">
+              <SectionTitle icon={FileText} title="System Prompt Studio" />
+              <strong>{draft.systemPromptWorkbench.score}/100</strong>
+            </div>
+            <div className="prompt-meta">
+              <span>{draft.systemPromptWorkbench.sentiment.desiredTone}</span>
+              <span>{draft.systemPromptWorkbench.sentiment.riskPosture}</span>
+              <span>{draft.systemPromptWorkbench.sentiment.confidence} confidence</span>
+            </div>
+            <pre>{draft.systemPromptWorkbench.prompt}</pre>
+          </section>
+
+          <section className="work-section">
+            <SectionTitle icon={PhoneCall} title="Opening + Call States" />
             <div className="agent-copy">
-              <p>{draft.agentSpec.systemPrompt}</p>
               <blockquote>{draft.agentSpec.openingScript}</blockquote>
             </div>
             <div className="chip-row">
@@ -190,6 +230,43 @@ export default function Home() {
                 </span>
               ))}
             </div>
+          </section>
+
+          <section className="work-section">
+            <SectionTitle icon={ListChecks} title="Prompt Quality Checks" />
+            <ul className="quality-list">
+              {draft.systemPromptWorkbench.qualityChecks.map((check) => (
+                <li className={check.status} key={check.criterion}>
+                  <strong>{check.criterion}</strong>
+                  <span>{check.detail}</span>
+                  <em>{check.status}</em>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="work-section">
+            <SectionTitle icon={PlayCircle} title="Prompt Self-Tests" />
+            <ul className="quality-list">
+              {draft.systemPromptWorkbench.selfTests.map((test) => (
+                <li className={test.status} key={test.title}>
+                  <strong>{test.title}</strong>
+                  <span>{test.expectedBehavior}</span>
+                  <em>{test.status}</em>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="work-section">
+            <SectionTitle icon={Sparkles} title="Prompt Improvements" />
+            <ul className="stack-list">
+              {draft.systemPromptWorkbench.improvementLog.map((item) => (
+                <li key={item}>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
           </section>
 
           <section className="work-section">
@@ -212,6 +289,22 @@ export default function Home() {
                 </li>
               ))}
             </ul>
+          </section>
+
+          <section className="work-section wide">
+            <SectionTitle icon={ClipboardCheck} title="Agent Component Readiness" />
+            <div className="readiness-grid">
+              {draft.componentAssessments.map((component) => (
+                <article className={component.readiness} key={component.componentId}>
+                  <div>
+                    <strong>{component.title}</strong>
+                    <span>{component.category.replaceAll("_", " ")}</span>
+                  </div>
+                  <p>{component.nextAction}</p>
+                  {component.missingInputs.length > 0 ? <em>{component.missingInputs.join(", ")}</em> : null}
+                </article>
+              ))}
+            </div>
           </section>
 
           <section className="work-section">

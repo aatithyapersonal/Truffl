@@ -22,6 +22,8 @@ const envSchema = z.object({
   TWILIO_AUTH_TOKEN: z.string().optional(),
   TWILIO_FROM_NUMBER: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
+  BUILDER_LLM_PROVIDER: z.enum(["openai", "deterministic"]).default("openai"),
+  BUILDER_LLM_MODEL: z.string().default("gpt-5.2"),
   WHATSAPP_PROVIDER: z.string().optional(),
   WHATSAPP_API_KEY: z.string().optional(),
   META_WHATSAPP_ACCESS_TOKEN: z.string().optional(),

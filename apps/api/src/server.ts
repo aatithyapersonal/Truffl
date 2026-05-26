@@ -2,6 +2,7 @@ import cors from "@fastify/cors";
 import Fastify from "fastify";
 import { z } from "zod";
 import {
+  applyBuilderIntelligenceResult,
   applyBuilderMessage,
   applyMerchantMessage,
   createInitialAgentBuilderDraft,
@@ -11,6 +12,7 @@ import {
   type JourneyDraft
 } from "@truffl/core";
 import { loadEnv } from "@truffl/config";
+import { generateBuilderIntelligence } from "./agent-builder-llm.js";
 
 const env = loadEnv();
 const app = Fastify({ logger: true });
@@ -58,7 +60,18 @@ app.post("/api/agent-builder/:draftId/messages", async (request, reply) => {
   const params = z.object({ draftId: z.string() }).parse(request.params);
   const body = messageBodySchema.parse(request.body);
   const draft = agentDrafts.get(params.draftId) ?? getOrCreateAgentBuilderDraft();
-  const updated = applyBuilderMessage(draft, body.content);
+  let updated: AgentBuilderDraft;
+
+  try {
+    const intelligence = await generateBuilderIntelligence({ content: body.content, draft, env });
+    updated = intelligence
+      ? applyBuilderIntelligenceResult(draft, body.content, intelligence)
+      : applyBuilderMessage(draft, body.content);
+  } catch (error) {
+    request.log.warn({ error }, "Falling back to deterministic agent builder after LLM failure");
+    updated = applyBuilderMessage(draft, body.content);
+  }
+
   agentDrafts.set(updated.id, updated);
 
   return reply.send(updated);

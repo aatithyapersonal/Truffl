@@ -1,3 +1,6 @@
+import { assessAgentComponents, type AgentComponentAssessment } from "./agent-components.js";
+import { buildSystemPromptWorkbench, type SystemPromptWorkbench } from "./system-prompt-workbench.js";
+
 export type VariableType = "string" | "number" | "currency" | "boolean" | "date" | "url" | "phone" | "email" | "enum";
 
 export type VariableSource =
@@ -82,6 +85,8 @@ export type AgentBuilderDraft = {
   tests: TestScenario[];
   analytics: AnalyticsMetric[];
   tasks: BuilderTask[];
+  componentAssessments: AgentComponentAssessment[];
+  systemPromptWorkbench: SystemPromptWorkbench;
   providerPlan: {
     telephony: string;
     stt: string;
@@ -106,10 +111,24 @@ export type UploadedDataPreview = {
   rowCount?: number;
 };
 
+export type BuilderIntelligenceResult = {
+  userFacingReply: string;
+  title?: string;
+  useCase?: string;
+  agentSpec?: Partial<AgentBuilderDraft["agentSpec"]>;
+  variables?: AgentVariable[];
+  contactFields?: ContactField[];
+  knowledgeSources?: KnowledgeSource[];
+  tools?: VoiceTool[];
+  tests?: TestScenario[];
+  analytics?: AnalyticsMetric[];
+  tasksDone?: string[];
+};
+
 export function createInitialAgentBuilderDraft(): AgentBuilderDraft {
   const now = new Date().toISOString();
 
-  return {
+  const draft: AgentBuilderDraft = {
     id: "agent_builder_demo",
     title: "Voice Agent Builder",
     useCase: "Conversationally define a voice agent, then test it before connecting live providers.",
@@ -212,6 +231,8 @@ export function createInitialAgentBuilderDraft(): AgentBuilderDraft {
       { label: "Add website/knowledge sources", status: "queued" },
       { label: "Connect live telephony", status: "blocked" }
     ],
+    componentAssessments: [],
+    systemPromptWorkbench: emptySystemPromptWorkbench(),
     providerPlan: {
       telephony: "Mock now; Plivo/Twilio adapters later",
       stt: "Mock transcript now; provider adapter later",
@@ -222,6 +243,8 @@ export function createInitialAgentBuilderDraft(): AgentBuilderDraft {
     },
     updatedAt: now
   };
+
+  return refreshDerivedIntelligence(draft);
 }
 
 export function applyBuilderMessage(draft: AgentBuilderDraft, content: string): AgentBuilderDraft {
@@ -252,6 +275,20 @@ export function applyBuilderMessage(draft: AgentBuilderDraft, content: string): 
       field("recovery_url", "url", false, "optional")
     ]);
     addedTasks.push("Configured abandoned-cart use case");
+  }
+
+  if (includesAny(normalized, ["premium", "luxury", "polished"])) {
+    next.agentSpec.tone = "Polished, premium, calm, and trust-building.";
+    addedTasks.push("Tuned system prompt tone for premium brand voice");
+  }
+
+  if (includesAny(normalized, ["not pushy", "gentle", "respectful"])) {
+    next.agentSpec.tone = "Warm, respectful, non-pushy, and helpful.";
+    addedTasks.push("Tuned system prompt to avoid pushy behavior");
+  }
+
+  if (includesAny(normalized, ["system prompt", "prompt", "guardrail", "self test", "self improve", "heal"])) {
+    addedTasks.push("Regenerated and self-tested system prompt");
   }
 
   if (includesAny(normalized, ["appointment", "booking", "demo", "schedule"])) {
@@ -303,7 +340,48 @@ export function applyBuilderMessage(draft: AgentBuilderDraft, content: string): 
   }
 
   next.tasks = mergeTasks(next.tasks, addedTasks);
+  refreshDerivedIntelligence(next, content);
   next.messages.push({ role: "truffl", content: buildBuilderReply(next, addedTasks), createdAt: now });
+  next.updatedAt = now;
+
+  return next;
+}
+
+export function applyBuilderIntelligenceResult(
+  draft: AgentBuilderDraft,
+  content: string,
+  intelligence: BuilderIntelligenceResult
+): AgentBuilderDraft {
+  const now = new Date().toISOString();
+  const next = structuredClone(draft);
+
+  next.messages.push({ role: "user", content, createdAt: now });
+
+  if (intelligence.title) next.title = intelligence.title;
+  if (intelligence.useCase) next.useCase = intelligence.useCase;
+  if (intelligence.agentSpec) {
+    next.agentSpec = {
+      ...next.agentSpec,
+      ...intelligence.agentSpec,
+      guardrails: intelligence.agentSpec.guardrails ?? next.agentSpec.guardrails,
+      stateMachine: intelligence.agentSpec.stateMachine ?? next.agentSpec.stateMachine
+    };
+  }
+
+  addVariables(next, intelligence.variables ?? []);
+  addFields(next, intelligence.contactFields ?? []);
+  for (const source of intelligence.knowledgeSources ?? []) addKnowledgeSource(next, source);
+  for (const toolItem of intelligence.tools ?? []) addTool(next, toolItem);
+  for (const test of intelligence.tests ?? []) addTest(next, test);
+  for (const metric of intelligence.analytics ?? []) addMetric(next, metric);
+
+  next.tasks = mergeTasks(next.tasks, intelligence.tasksDone ?? ["Interpreted conversation with LLM"]);
+  refreshDerivedIntelligence(next, content);
+  next.messages.push({
+    role: "truffl",
+    content: intelligence.userFacingReply || buildBuilderReply(next, intelligence.tasksDone ?? []),
+    createdAt: now
+  });
   next.updatedAt = now;
 
   return next;
@@ -336,6 +414,7 @@ export function applyUploadedDataPreview(draft: AgentBuilderDraft, preview: Uplo
       : metric
   );
   next.tasks = mergeTasks(next.tasks, ["Detected uploaded data fields", "Mapped matching contact variables"]);
+  refreshDerivedIntelligence(next);
   next.messages.push({
     role: "truffl",
     content: `I inspected ${preview.fileName}. I detected ${preview.columns.length || "some"} fields and mapped the obvious ones. Next we should review required fields, then generate the simulated call queue.`,
@@ -344,6 +423,56 @@ export function applyUploadedDataPreview(draft: AgentBuilderDraft, preview: Uplo
   next.updatedAt = now;
 
   return next;
+}
+
+function refreshDerivedIntelligence(draft: AgentBuilderDraft, latestUserMessage?: string): AgentBuilderDraft {
+  draft.systemPromptWorkbench = buildSystemPromptWorkbench({
+    useCase: draft.useCase,
+    role: draft.agentSpec.role,
+    goal: draft.agentSpec.goal,
+    tone: draft.agentSpec.tone,
+    openingScript: draft.agentSpec.openingScript,
+    guardrails: draft.agentSpec.guardrails,
+    stateMachine: draft.agentSpec.stateMachine,
+    variables: draft.variables,
+    knowledgeSources: draft.knowledgeSources,
+    tools: draft.tools,
+    tests: draft.tests,
+    latestUserMessage
+  });
+  draft.agentSpec.systemPrompt = draft.systemPromptWorkbench.prompt;
+
+  const requiredFields = draft.contactSchema.filter((fieldItem) => fieldItem.required);
+  draft.componentAssessments = assessAgentComponents({
+    hasUseCase: Boolean(draft.useCase.trim()),
+    variableCount: draft.variables.length,
+    requiredFields: requiredFields.length,
+    mappedRequiredFields: requiredFields.filter((fieldItem) => fieldItem.status === "mapped").length,
+    knowledgeSourceCount: draft.knowledgeSources.length,
+    toolCount: draft.tools.length,
+    testCount: draft.tests.length,
+    analyticsMetricCount: draft.analytics.length,
+    liveProviderReady: false
+  });
+  return draft;
+}
+
+function emptySystemPromptWorkbench(): SystemPromptWorkbench {
+  return {
+    version: 1,
+    prompt: "",
+    score: 0,
+    sentiment: {
+      userVision: "",
+      desiredTone: "",
+      riskPosture: "balanced",
+      confidence: "low"
+    },
+    sections: [],
+    qualityChecks: [],
+    selfTests: [],
+    improvementLog: []
+  };
 }
 
 function variable(
@@ -387,6 +516,33 @@ function addFields(draft: AgentBuilderDraft, fields: ContactField[]) {
 function addKnowledgeSource(draft: AgentBuilderDraft, source: KnowledgeSource) {
   if (!draft.knowledgeSources.some((existing) => existing.id === source.id)) {
     draft.knowledgeSources.push(source);
+  }
+}
+
+function addTool(draft: AgentBuilderDraft, toolItem: VoiceTool) {
+  const existing = draft.tools.find((item) => item.name === toolItem.name);
+  if (existing) {
+    Object.assign(existing, toolItem);
+  } else {
+    draft.tools.push(toolItem);
+  }
+}
+
+function addTest(draft: AgentBuilderDraft, test: TestScenario) {
+  const existing = draft.tests.find((item) => item.title === test.title);
+  if (existing) {
+    Object.assign(existing, test);
+  } else {
+    draft.tests.push(test);
+  }
+}
+
+function addMetric(draft: AgentBuilderDraft, metric: AnalyticsMetric) {
+  const existing = draft.analytics.find((item) => item.label === metric.label);
+  if (existing) {
+    Object.assign(existing, metric);
+  } else {
+    draft.analytics.push(metric);
   }
 }
 
